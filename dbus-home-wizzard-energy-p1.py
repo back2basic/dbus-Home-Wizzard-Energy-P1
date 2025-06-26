@@ -178,10 +178,10 @@ class DbusHomeWizzardEnergyP1Service:
                 self._dbusservice['/Ac/L1/Power'] = meter_data['active_power_l1_w']
                 # self._dbusservice['/Ac/L2/Power'] = meter_data['active_power_l1_w']
                 # self._dbusservice['/Ac/L3/Power'] = meter_data['active_power_l1_w']
-                self._dbusservice['/Ac/Energy/Forward'] = (meter_data['total_power_import_kwh']/1000)
-                self._dbusservice['/Ac/Energy/Reverse'] = (meter_data['total_power_export_kwh']/1000)
-                self._dbusservice['/Ac/L1/Energy/Forward'] = (meter_data['total_power_import_kwh']/1000)
-                self._dbusservice['/Ac/L1/Energy/Reverse'] = (meter_data['total_power_export_kwh']/1000) 
+                self._dbusservice['/Ac/Energy/Forward'] = (meter_data['total_power_import_kwh'])
+                self._dbusservice['/Ac/Energy/Reverse'] = (meter_data['total_power_export_kwh'])
+                self._dbusservice['/Ac/L1/Energy/Forward'] = (meter_data['total_power_import_kwh'])
+                self._dbusservice['/Ac/L1/Energy/Reverse'] = (meter_data['total_power_export_kwh']) 
             if phases == '3':
                 #send data to DBus for 3pahse system
                 self._dbusservice['/Ac/Power'] = meter_data['active_power_w']
@@ -194,8 +194,8 @@ class DbusHomeWizzardEnergyP1Service:
                 self._dbusservice['/Ac/L1/Power'] = meter_data['active_power_l1_w']
                 self._dbusservice['/Ac/L2/Power'] = meter_data['active_power_l2_w']
                 self._dbusservice['/Ac/L3/Power'] = meter_data['active_power_l3_w']
-                self._dbusservice['/Ac/Energy/Forward'] = (meter_data['total_power_import_kwh']/1000)
-                self._dbusservice['/Ac/Energy/Reverse'] = (meter_data['total_power_export_kwh']/1000)
+                self._dbusservice['/Ac/Energy/Forward'] = (meter_data['total_power_import_kwh'])
+                self._dbusservice['/Ac/Energy/Reverse'] = (meter_data['total_power_export_kwh'])
                 # self._dbusservice['/Ac/L1/Energy/Forward'] = (meter_data['emeters'][0]['total']/1000)
                 # self._dbusservice['/Ac/L2/Energy/Forward'] = (meter_data['emeters'][1]['total']/1000)
                 # self._dbusservice['/Ac/L3/Energy/Forward'] = (meter_data['emeters'][2]['total']/1000)
