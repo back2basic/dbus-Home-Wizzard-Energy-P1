@@ -1,5 +1,5 @@
 #!/bin/bash
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-DAEMON_NAME=${SCRIPT_DIR##*/}
+DAEMON_NAME=$(ls ${SCRIPT_DIR}/*.py)
 
-kill $(pgrep -f "python $SCRIPT_DIR/$DAEMON_NAME")
+pkill -f "python $SCRIPT_DIR/$DAEMON_NAME"
