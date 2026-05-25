@@ -8,6 +8,8 @@ forked from https://github.com/back2basic/dbus-Home-Wizzard-Energy-P1 who forked
 With the scripts in this repo it should be easy possible to install, uninstall, restart a service that connects the HomeWizard P1 to the VenusOS and GX devices from Victron.
 Idea is pasend on @RalfZim project linked below.
 
+I cleaned it up a bit and added mDNS auto discovery
+
 
 
 ## Inspiration
@@ -20,10 +22,10 @@ This project is my first on GitHub and with the Victron Venus OS, so I took some
 
 ## How it works
 ### My setup
-- HomeWizard Energy P1 with latest firmware 
+- HomeWizard Energy P1 with latest firmware
   - 1 or 3-Phase installation (normal for Netherlands)
   - Connected to Wifi network "A"
-  - IP 192.168.2.13/24  
+  - IP 192.168.2.13/24
 - Victron Energy Cerbo GX with Venus OS - Firmware v3.11
   - No other devices from Victron connected (still waiting for shipment of Multiplus-2)
   - Connected to Wifi network "A"
@@ -44,7 +46,7 @@ Thats it 😄
 
 ### Pictures
 ![Tile Overview](img/VenusOs_Overview.png)
-![Remote Console - Overview](img/VenusOs_DeviceList.png) 
+![Remote Console - Overview](img/VenusOs_DeviceList.png)
 ![SmartMeter - Values](img/VenusOs_P1.png)
 ![SmartMeter - Device Details](img/VenusOs_Service.png)
 
@@ -80,7 +82,7 @@ Within the project there is a file `/data/dbus-HomeWizard-Energy-P1/config.ini` 
 | DEFAULT  | Position | Fixed value: 0 = AC|
 | DEFAULT  | LogLevel  | Define the level of logging - lookup: https://docs.python.org/3/library/logging.html#levels |
 | DEFAULT  | Phases  | 1 for 1 phase system / 3 for 3 phase system |
-| ONPREMISE  | Host | IP or hostname of on-premise HomeWizard P1 web-interface |
+| ONPREMISE  | Host | IP or hostname of on-premise HomeWizard P1 web-interface, leave on 'autodiscover' for mDNS discovery |
 <!-- | ONPREMISE  | Username | Username for htaccess login - leave blank if no username/password required |
 | ONPREMISE  | Password | Password for htaccess login - leave blank if no username/password required |
 | ONPREMISE  | L1Position | Which input on the HomeWizard P1 in 3-phase grid is supplying a single Multi | -->
