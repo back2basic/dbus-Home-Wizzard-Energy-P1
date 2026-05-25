@@ -14,11 +14,26 @@ else:
 import time
 import requests # for http GET
 import configparser # for config/ini file
+import socket
+import time
+from zeroconf import Zeroconf, ServiceBrowser
 
 # our own packages from victron
 sys.path.insert(1, os.path.join(os.path.dirname(__file__), '/opt/victronenergy/dbus-systemcalc-py/ext/velib_python'))
 from vedbus import VeDbusService
 
+class HomeWizardDiscoveryListener:
+    def __init__(self):
+        self.found_ip = None
+
+    def add_service(self, zeroconf, type, name):
+        info = zeroconf.get_service_info(type, name)
+        if info:
+            # Extract the first available IPv4 address
+            self.found_ip = socket.inet_ntoa(info.addresses[0])
+
+    def update_service(self, zeroconf, type, name):
+        pass
 
 class DbusHomeWizardEnergyP1Service:
     def __init__(self, paths, productname='HomeWizard Energy P1', connection='HomeWizard Energy P1 HTTP JSON service'):
@@ -26,6 +41,25 @@ class DbusHomeWizardEnergyP1Service:
         deviceinstance = int(config['DEFAULT']['DeviceInstance'])
         customname = config['DEFAULT']['CustomName']
         role = config['DEFAULT']['Role']
+        self.host = config['ONPREMISE']['Host']
+
+        # Trigger mDNS auto-discovery if host is unspecified or explicitly set to discover
+        if not self.host or self.host.lower() in ['discover', 'auto', 'mdns']:
+          logging.info("Host config set to auto-discovery. Scanning for HomeWizard P1 via mDNS...")
+          zeroconf = Zeroconf()
+          listener = HomeWizardDiscoveryListener()
+          browser = ServiceBrowser(zeroconf, "_hwenergy._tcp.local.", listener)
+
+          # Wait up to 5 seconds for the P1 meter multicast response
+          time.sleep(5)
+          zeroconf.close()
+
+          if listener.found_ip:
+              logging.info(f"mDNS Discovery successful! Found HomeWizard P1 Meter at IP: {listener.found_ip}")
+              self.host = listener.found_ip
+          else:
+              logging.error("mDNS Discovery failed: No HomeWizard P1 Meter found on the local network. Exiting.")
+              sys.exit(1)
 
         allowed_roles = ['pvinverter','grid']
         if role in allowed_roles:
@@ -112,7 +146,7 @@ class DbusHomeWizardEnergyP1Service:
         accessType = config['DEFAULT']['AccessType']
 
         if accessType == 'OnPremise':
-            URL = "http://%s/api/v1/data" % (config['ONPREMISE']['Host'])
+            URL = "http://%s/api/v1/data" % self.host
             # URL = URL.replace(":@", "")
         else:
             raise ValueError("AccessType %s is not supported" % (config['DEFAULT']['AccessType']))
