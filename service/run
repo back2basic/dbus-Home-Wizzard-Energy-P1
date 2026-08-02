@@ -1,3 +1,4 @@
 #!/bin/sh
 exec 2>&1
-python /data/dbus-Home-Wizzard-Energy-P1/dbus-home-wizzard-energy-p1.py
+SCRIPT_DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)
+python "$SCRIPT_DIR/dbus-homewizard-energy-p1.py"
