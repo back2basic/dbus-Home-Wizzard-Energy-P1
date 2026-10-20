@@ -61,13 +61,28 @@ class DbusHomeWizzardEnergyP1Service:
         self._dbusservice.add_path('/Role', role)
         self._dbusservice.add_path('/Position', self._getP1Position()) # normaly only needed for pvinverter
         self._dbusservice.add_path('/Serial', self._getP1Serial())
+        #### Improved: Fetch once during __init__
+        ####self._config = self._getConfig()
+        ####self._initial_meter_data = self._getP1Data()
+        ####self._dbusservice.add_path('/Position', int(self._config['DEFAULT'].get('Position', 0)))
+        ####self._dbusservice.add_path('/Serial', self._initial_meter_data['unique_id'])
+        ####
         self._dbusservice.add_path('/UpdateIndex', 0)
         
         # add path values to dbus
-        for path, settings in self._paths.items():
-          self._dbusservice.add_path(
-            path, settings['initial'], gettextcallback=settings['textformat'], writeable=True, onchangecallback=self._handlechangedvalue)
+        ##for path, settings in self._paths.items():
+        ##  self._dbusservice.add_path(
+        ##    path, settings['initial'], gettextcallback=settings['textformat'], writeable=True, onchangecallback=self._handlechangedvalue)
     
+        # add path values to dbus safely
+        for path, settings in self._paths.items():
+            if path not in self._dbusservice:
+                self._dbusservice.add_path(
+                    path, settings['initial'], gettextcallback=settings['textformat'], writeable=True, onchangecallback=self._handlechangedvalue)
+
+        # read config
+        self._config = self._getConfig()
+
         # last update
         self._lastUpdate = 0
     
@@ -152,39 +167,23 @@ class DbusHomeWizzardEnergyP1Service:
         try:
             #get data from Shelly 3em
             meter_data = self._getP1Data()
-            config = self._getConfig()
+            phases = self._config['DEFAULT']['Phases']
+            ##config = self._getConfig()
+            ##phases = config['DEFAULT']['Phases']
 
-            # No remapping possible!
-            # try:
-            #     remapL1 = int(config['ONPREMISE']['L1Position'])
-            # except KeyError:
-            #     remapL1 = 1
-
-            # if remapL1 > 1:
-            #     old_l1 = meter_data['emeters'][0]
-            #     meter_data['emeters'][0] = meter_data['emeters'][remapL1-1]
-            #     meter_data['emeters'][remapL1-1] = old_l1
-            phases = config['DEFAULT']['Phases']
-
+            self._dbusservice['/Ac/Power'] = meter_data['active_power_w']
+            self._dbusservice['/Ac/Energy/Forward'] = (meter_data['total_power_import_kwh'])
+            self._dbusservice['/Ac/Energy/Reverse'] = (meter_data['total_power_export_kwh'])               
+    
             if phases == '1':
-                #send data to DBus for 3pahse system
-                self._dbusservice['/Ac/Power'] = meter_data['active_power_w']
+                #send data to DBus for 1 phase system
                 self._dbusservice['/Ac/L1/Voltage'] = meter_data['active_voltage_l1_v']
-                # self._dbusservice['/Ac/L2/Voltage'] = meter_data['active_voltage_l2_v']
-                # self._dbusservice['/Ac/L3/Voltage'] = meter_data['active_voltage_l3_v']
                 self._dbusservice['/Ac/L1/Current'] = meter_data['active_current_l1_a']
-                # self._dbusservice['/Ac/L2/Current'] = meter_data['active_current_l2_a']
-                # self._dbusservice['/Ac/L3/Current'] = meter_data['active_current_l3_a']
                 self._dbusservice['/Ac/L1/Power'] = meter_data['active_power_l1_w']
-                # self._dbusservice['/Ac/L2/Power'] = meter_data['active_power_l1_w']
-                # self._dbusservice['/Ac/L3/Power'] = meter_data['active_power_l1_w']
-                self._dbusservice['/Ac/Energy/Forward'] = (meter_data['total_power_import_kwh']/1000)
-                self._dbusservice['/Ac/Energy/Reverse'] = (meter_data['total_power_export_kwh']/1000)
-                self._dbusservice['/Ac/L1/Energy/Forward'] = (meter_data['total_power_import_kwh']/1000)
-                self._dbusservice['/Ac/L1/Energy/Reverse'] = (meter_data['total_power_export_kwh']/1000) 
+                #self._dbusservice['/Ac/L1/Energy/Forward'] = (meter_data['total_power_import_kwh'])# - initial_import)
+                #self._dbusservice['/Ac/L1/Energy/Reverse'] = (meter_data['total_power_export_kwh'])# - initial_export)
             if phases == '3':
-                #send data to DBus for 3pahse system
-                self._dbusservice['/Ac/Power'] = meter_data['active_power_w']
+                #send data to DBus for 3 phase system
                 self._dbusservice['/Ac/L1/Voltage'] = meter_data['active_voltage_l1_v']
                 self._dbusservice['/Ac/L2/Voltage'] = meter_data['active_voltage_l2_v']
                 self._dbusservice['/Ac/L3/Voltage'] = meter_data['active_voltage_l3_v']
@@ -194,26 +193,13 @@ class DbusHomeWizzardEnergyP1Service:
                 self._dbusservice['/Ac/L1/Power'] = meter_data['active_power_l1_w']
                 self._dbusservice['/Ac/L2/Power'] = meter_data['active_power_l2_w']
                 self._dbusservice['/Ac/L3/Power'] = meter_data['active_power_l3_w']
-                self._dbusservice['/Ac/Energy/Forward'] = (meter_data['total_power_import_kwh']/1000)
-                self._dbusservice['/Ac/Energy/Reverse'] = (meter_data['total_power_export_kwh']/1000)
-                # self._dbusservice['/Ac/L1/Energy/Forward'] = (meter_data['emeters'][0]['total']/1000)
-                # self._dbusservice['/Ac/L2/Energy/Forward'] = (meter_data['emeters'][1]['total']/1000)
-                # self._dbusservice['/Ac/L3/Energy/Forward'] = (meter_data['emeters'][2]['total']/1000)
-                # self._dbusservice['/Ac/L1/Energy/Reverse'] = (meter_data['emeters'][0]['total_returned']/1000) 
-                # self._dbusservice['/Ac/L2/Energy/Reverse'] = (meter_data['emeters'][1]['total_returned']/1000) 
-                # self._dbusservice['/Ac/L3/Energy/Reverse'] = (meter_data['emeters'][2]['total_returned']/1000) 
-
-            # Old version
-            #self._dbusservice['/Ac/Energy/Forward'] = self._dbusservice['/Ac/L1/Energy/Forward'] + self._dbusservice['/Ac/L2/Energy/Forward'] + self._dbusservice['/Ac/L3/Energy/Forward']
-            #self._dbusservice['/Ac/Energy/Reverse'] = self._dbusservice['/Ac/L1/Energy/Reverse'] + self._dbusservice['/Ac/L2/Energy/Reverse'] + self._dbusservice['/Ac/L3/Energy/Reverse'] 
-            
-            # New Version - from xris99
-            #Calc = 60min * 60 sec / 0.500 (refresh interval of 500ms) * 1000
-            # if (self._dbusservice['/Ac/Power'] > 0):
-            #     self._dbusservice['/Ac/Energy/Forward'] = self._dbusservice['/Ac/Energy/Forward'] + (self._dbusservice['/Ac/Power']/(60*60/0.5*1000))            
-            # if (self._dbusservice['/Ac/Power'] < 0):
-            #     self._dbusservice['/Ac/Energy/Reverse'] = self._dbusservice['/Ac/Energy/Reverse'] + (self._dbusservice['/Ac/Power']*-1/(60*60/0.5*1000))
-
+                #  not working for home wizzard
+                #self._dbusservice['/Ac/L1/Energy/Forward'] = (meter_data['emeters'][0]['total'])
+                #self._dbusservice['/Ac/L2/Energy/Forward'] = (meter_data['emeters'][1]['total'])
+                #self._dbusservice['/Ac/L3/Energy/Forward'] = (meter_data['emeters'][2]['total'])
+                #self._dbusservice['/Ac/L1/Energy/Reverse'] = (meter_data['emeters'][0]['total_returned']) 
+                #self._dbusservice['/Ac/L2/Energy/Reverse'] = (meter_data['emeters'][1]['total_returned'])
+                #self._dbusservice['/Ac/L3/Energy/Reverse'] = (meter_data['emeters'][2]['total_returned'])
             
             #logging
             logging.debug("House Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))
@@ -221,18 +207,26 @@ class DbusHomeWizzardEnergyP1Service:
             logging.debug("House Reverse (/Ac/Energy/Revers): %s" % (self._dbusservice['/Ac/Energy/Reverse']))
             logging.debug("---");
             
-            # increment UpdateIndex - to show that new data is available an wrap
+            # increment UpdateIndex - to show that new data is available and wrap
             self._dbusservice['/UpdateIndex'] = (self._dbusservice['/UpdateIndex'] + 1 ) % 256
 
             #update lastupdate vars
             self._lastUpdate = time.time()
         except (ValueError, requests.exceptions.ConnectionError, requests.exceptions.Timeout, ConnectionError) as e:
-            logging.critical('Error getting data from Shelly - check network or Shelly status. Setting power values to 0. Details: %s', e, exc_info=e)       
-            self._dbusservice['/Ac/L1/Power'] = 0                                       
-            self._dbusservice['/Ac/L2/Power'] = 0                                       
-            self._dbusservice['/Ac/L3/Power'] = 0
-            self._dbusservice['/Ac/Power'] = 0
-            self._dbusservice['/UpdateIndex'] = (self._dbusservice['/UpdateIndex'] + 1 ) % 256        
+            logging.critical('Error getting data from Shelly - check network or Shelly status. Setting power values to None. Details: %s', e, exc_info=e)       
+            self._dbusservice['/Ac/Power'] = None ##
+            self._dbusservice['/Ac/L1/Voltage'] = None
+            self._dbusservice['/Ac/L2/Voltage'] = None
+            self._dbusservice['/Ac/L3/Voltage'] = None
+            self._dbusservice['/Ac/L1/Current'] = None
+            self._dbusservice['/Ac/L2/Current'] = None
+            self._dbusservice['/Ac/L3/Current'] = None
+            self._dbusservice['/Ac/L1/Power'] = None ##
+            self._dbusservice['/Ac/L2/Power'] = None ##
+            self._dbusservice['/Ac/L3/Power'] = None ##
+            self._dbusservice['/Ac/Energy/Forward'] = None ##
+            self._dbusservice['/Ac/Energy/Reverse'] = None ##
+            self._dbusservice['/UpdateIndex'] = (self._dbusservice['/UpdateIndex'] + 1 ) % 256 ##       
         except Exception as e:
             logging.critical('Error at %s', '_update', exc_info=e)
         
@@ -243,9 +237,6 @@ class DbusHomeWizzardEnergyP1Service:
         logging.debug("someone else updated %s to %s" % (path, value))
         return True # accept the change
 
-  
-  
-  
   
 def getLogLevel():
     config = configparser.ConfigParser()
@@ -287,29 +278,30 @@ def main():
         
         pvac_output = DbusHomeWizzardEnergyP1Service(
             paths={
-                '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh}, # energy bought from the grid
-                '/Ac/Energy/Reverse': {'initial': 0, 'textformat': _kwh}, # energy sold to the grid
-                '/Ac/Power': {'initial': 0, 'textformat': _w},
-                
-                '/Ac/Current': {'initial': 0, 'textformat': _a},
-                '/Ac/Voltage': {'initial': 0, 'textformat': _v},
-                
-                '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
-                '/Ac/L2/Voltage': {'initial': 0, 'textformat': _v},
-                '/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
-                '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
-                '/Ac/L2/Current': {'initial': 0, 'textformat': _a},
-                '/Ac/L3/Current': {'initial': 0, 'textformat': _a},
-                '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
-                '/Ac/L2/Power': {'initial': 0, 'textformat': _w},
-                '/Ac/L3/Power': {'initial': 0, 'textformat': _w},
-                # '/Ac/L1/Energy/Forward': {'initial': 0, 'textformat': _kwh},
-                # '/Ac/L2/Energy/Forward': {'initial': 0, 'textformat': _kwh},
-                # '/Ac/L3/Energy/Forward': {'initial': 0, 'textformat': _kwh},
-                # '/Ac/L1/Energy/Reverse': {'initial': 0, 'textformat': _kwh},
-                # '/Ac/L2/Energy/Reverse': {'initial': 0, 'textformat': _kwh},
-                # '/Ac/L3/Energy/Reverse': {'initial': 0, 'textformat': _kwh},
+                '/Ac/Energy/Forward': {'initial': None, 'textformat': _kwh}, # energy bought from the grid
+                '/Ac/Energy/Reverse': {'initial': None, 'textformat': _kwh}, # energy sold to the grid
+                '/Ac/Power': {'initial': None, 'textformat': _w},              
+                '/Ac/Current': {'initial': None, 'textformat': _a},
+                '/Ac/Voltage': {'initial': None, 'textformat': _v},           
+                '/Ac/L1/Voltage': {'initial': None, 'textformat': _v},
+                '/Ac/L2/Voltage': {'initial': None, 'textformat': _v},
+                '/Ac/L3/Voltage': {'initial': None, 'textformat': _v},
+                '/Ac/L1/Current': {'initial': None, 'textformat': _a},
+                '/Ac/L2/Current': {'initial': None, 'textformat': _a},
+                '/Ac/L3/Current': {'initial': None, 'textformat': _a},
+                '/Ac/L1/Power': {'initial': None, 'textformat': _w},
+                '/Ac/L2/Power': {'initial': None, 'textformat': _w},
+                '/Ac/L3/Power': {'initial': None, 'textformat': _w},
+                # not working for home wizzard
+                #'/Ac/L1/Energy/Forward': {'initial': None, 'textformat': _kwh},
+                #'/Ac/L2/Energy/Forward': {'initial': None, 'textformat': _kwh},
+                #'/Ac/L3/Energy/Forward': {'initial': None, 'textformat': _kwh},
+                #'/Ac/L1/Energy/Reverse': {'initial': None, 'textformat': _kwh},
+                #'/Ac/L2/Energy/Reverse': {'initial': None, 'textformat': _kwh},
+                #'/Ac/L3/Energy/Reverse': {'initial': None, 'textformat': _kwh},
                 })
+ 
+
         logging.info('Connected to dbus, and switching over to gobject.MainLoop() (= event based)')
         mainloop = gobject.MainLoop()
         mainloop.run()            
